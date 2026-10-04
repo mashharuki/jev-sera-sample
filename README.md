@@ -82,6 +82,40 @@ stdoutへJSONを1件出力します。`decision`に方針・confidence・確率�
 見送りは`selected: null`と`reason`、処理エラーはstderrの短いエラーコードで示します。
 見送りの終了コードは0、処理エラーは1です。
 
+実行結果例
+
+```json
+
+{
+  "mode": "execute",
+  "chain_id": 11155111,
+  "decision": {
+    "policy": "best_quote",
+    "confidence": 0.77,
+    "probabilities": {
+      "best_quote": 0.83,
+      "prefer_usdc": 0,
+      "prefer_usdt": 0,
+      "wait": 0.17
+    },
+    "model": "jev-1.13.0",
+    "usage": {
+      "input_tokens": 475,
+      "output_tokens": 51
+    }
+  },
+  "candidates": [],
+  "selected": null,
+  "reason": "low_confidence",
+  "timings": {
+    "jev_ms": 210.18554199999994,
+    "sera_ms": 0,
+    "total_ms": 210.21916699999997
+  },
+  "status": "skipped"
+}
+```
+
 ## SepoliaでSwapを実行する場合
 
 実行は別の`execute`コマンドです。入力JPYCがEIP-2612 Permitに対応し、
