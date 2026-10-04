@@ -1,0 +1,33 @@
+{
+  "name": "jev-sera-sample",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "preview": "node --env-file=.env --import=tsx src/index.ts",
+    "execute": "node --env-file=.env --import=tsx src/execute.ts",
+    "status": "node --env-file=.env --import=tsx src/execute.ts --status",
+    "check": "tsc --noEmit",
+    "test": "node --import=tsx --test test/*.test.ts",
+    "lint": "biome lint . --error-on-warnings",
+    "format": "biome format --write .",
+    "format:check": "biome format .",
+    "biome:check": "biome check . --error-on-warnings",
+    "biome:fix": "biome check --write .",
+    "verify": "npm run biome:check && npm run check && npm test",
+    "sera:key:create": "node --env-file=.env --import=tsx src/create-sera-api-key.ts"
+  },
+  "dependencies": {
+    "@typesafe-ai/sdk": "0.6.0",
+    "ethers": "6.17.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.15",
+    "@types/node": "26.6.4",
+    "tsx": "4.23.15",
+    "typescript": "7.0.2"
+  }
+}
