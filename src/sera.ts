@@ -9,12 +9,18 @@ export const API_BASE = "https://api.testnet.sera.cx/api/v1";
 export const CHAIN_ID = 11155111;
 export type Destination = "USDC" | "USDT";
 export type Json = Record<string, unknown>;
-/** JSONオブジェクトか確認する。各フィールドの検査は呼び出し側で行う。 */
+
+/** 
+ * JSONオブジェクトか確認する。各フィールドの検査は呼び出し側で行う。
+ */
 export function record(v: unknown): Json {
   if (!v || typeof v !== "object" || Array.isArray(v)) throw new Error("invalid_sera_response");
   return v as Json;
 }
-/** Solidityのuintに収まる整数だけを受け取る。安全に表せないJavaScriptのnumberは拒否する。 */
+
+/** 
+ * Solidityのuintに収まる整数だけを受け取る。安全に表せないJavaScriptのnumberは拒否する。
+ */
 export function uint(v: unknown, bits = 256): bigint {
   if (
     (typeof v !== "string" || !/^\d+$/.test(v)) &&
@@ -25,7 +31,10 @@ export function uint(v: unknown, bits = 256): bigint {
   if (n < 0n || n >= 2n ** BigInt(bits)) throw new Error("invalid_uint");
   return n;
 }
-/** Ethereumアドレスを検査し、チェックサム表記にそろえる。 */
+
+/** 
+ * Ethereumアドレスを検査し、チェックサム表記にそろえる。
+ */
 export function address(v: unknown): string {
   if (typeof v !== "string") throw new Error("invalid_address");
   try {
@@ -37,6 +46,7 @@ export function address(v: unknown): string {
 export function sameAddress(a: unknown, b: unknown): boolean {
   return address(a) === address(b);
 }
+
 /**
  * 表示単位の金額をトークンの最小単位へ変換する。例: decimals=6なら1.23 → 1230000n。
  * 丸めによる金額変更を避けるため、桁超過・指数表記・ゼロ・uint256の範囲外は拒否する。
@@ -48,6 +58,7 @@ export function amountRaw(value: string, decimals: number): bigint {
   if (amount <= 0n || amount >= 2n ** 256n) throw new Error("invalid_amount");
   return amount;
 }
+
 // minも最小単位の整数。アドレス・decimals・最低取引額はAPIから取得する。
 export interface Token {
   symbol: "JPYC" | Destination;
@@ -87,7 +98,9 @@ export interface Candidate {
   reason: string | null;
 }
 
-/** Sepoliaと署名domainを検査する。IntentのverifyingContractはSera、PermitのspenderはSOR。 */
+/** 
+ * Sepoliaと署名domainを検査する。IntentのverifyingContractはSera、PermitのspenderはSOR。
+ */
 export function parseConfig(value: unknown): Config {
   const r = record(value),
     d = record(r.eip712_domain);
@@ -103,7 +116,10 @@ export function parseConfig(value: unknown): Config {
   if (r.domain_separator !== TypedDataEncoder.hashDomain(domain)) throw new Error("invalid_domain");
   return { domain, sor: address(r.sor_address) };
 }
-/** symbolの重複・通貨・decimalsを検査し、必要なトークンだけ取り出す。 */
+
+/** 
+ * symbolの重複・通貨・decimalsを検査し、必要なトークンだけ取り出す。
+ */
 export function parseTokens(value: unknown, symbols: readonly ("JPYC" | Destination)[]): Token[] {
   const list = record(value).tokens;
   if (!Array.isArray(list)) throw new Error("invalid_tokens");
@@ -127,6 +143,7 @@ export function parseTokens(value: unknown, symbols: readonly ("JPYC" | Destinat
     };
   });
 }
+
 /**
  * 返されたQuoteが、要求したトークン・owner・受取先・予算・期限に一致するか検査する。
  * このサンプルは入力の全額をウォレットから入金する経路だけを扱う。
@@ -185,7 +202,10 @@ export function validateQuote(
 }
 
 export class Sera {
-  // fetchを注入できるようにし、テストではネットワークなしでAPI応答を再現する。
+  /**
+   * コンストラクター
+   * @param transport fetch互換のHTTP関数。Node.jsではundiciのfetchを使う。
+   */
   constructor(private readonly transport: typeof fetch = fetch) {}
   /** 共通HTTP処理。bodyなしならGET、bodyありならPOSTとして送る。 */
   async request(path: string, body?: unknown, auth?: string): Promise<unknown> {
@@ -225,7 +245,10 @@ export class Sera {
       }
     }
   }
-  /** チェーン確認を最初に行い、不一致ならトークン取得やQuoteへ進まない。 */
+
+  /** 
+   * チェーン確認を最初に行い、不一致ならトークン取得やQuoteへ進まない。
+   */
   async initialize(
     allow: readonly Destination[],
   ): Promise<{ config: Config; input: Token; outputs: Token[] }> {
@@ -234,7 +257,10 @@ export class Sera {
     if (!input) throw new Error("invalid_tokens");
     return { config, input, outputs };
   }
-  /** ローカル端末の時刻ずれを避け、サーバー時刻に単調増加する経過時間を足す。 */
+
+  /** 
+   * ローカル端末の時刻ずれを避け、サーバー時刻に単調増加する経過時間を足す。
+   */
   async clock(): Promise<Clock> {
     const start = performance.now();
     const time = record(await this.request("/system/time")).timestamp;
@@ -243,7 +269,10 @@ export class Sera {
     // 通信の往復時間も加算し、古いサーバー時刻で有効期限を長く見積もるのを避ける。
     return { now: () => time + (performance.now() - start) / 1000 };
   }
-  /** 許可された交換先のQuoteを1回のbatchリクエストで取得する。 */
+
+  /** 
+   * 許可された交換先のQuoteを1回のbatchリクエストで取得する
+   */
   async quotes(
     input: Token,
     outputs: Token[],
@@ -291,6 +320,7 @@ export class Sera {
     });
   }
 }
+
 /**
  * 比較に使った最小単位と、人が読む表示単位を両方出力する。
  * receive_lessのminOutputAmountはガス控除済みなので、追加でガスを差し引かない。

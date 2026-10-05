@@ -8,6 +8,7 @@ import { choice, TypeSafeClient } from "@typesafe-ai/sdk";
 export const MODEL = "jev-1.13.0";
 export const POLICIES = ["best_quote", "prefer_usdc", "prefer_usdt", "wait"] as const;
 export type Policy = (typeof POLICIES)[number];
+
 /** 検査済みの分類結果。confidenceは約定成功率や利益の保証ではない。 */
 export interface Decision {
   policy: Policy;

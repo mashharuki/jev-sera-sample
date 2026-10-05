@@ -2,8 +2,7 @@
  * execute/status専用の入口。previewの結果を使い、再Quote → 署名 → 保存 → 送信 → 決済確認を行う。
  * 送信後に結果が不明ならunknownとして停止し、自動で新しいSwapを始めない。
  */
-import { type FileHandle, mkdir, open, readFile, unlink } from "node:fs/promises";
-import { resolve } from "node:path";
+
 import {
   Contract,
   FetchRequest,
@@ -12,6 +11,8 @@ import {
   type TypedDataField,
   Wallet,
 } from "ethers";
+import { type FileHandle, mkdir, open, readFile, unlink } from "node:fs/promises";
+import { resolve } from "node:path";
 import { envValue, fail, isMain, type Options, options, prepare, report, select } from "./index.js";
 import {
   address,
@@ -20,8 +21,8 @@ import {
   type Config,
   type Quote,
   record,
-  Sera,
   sameAddress,
+  Sera,
   summary,
   uint,
 } from "./sera.js";
@@ -50,6 +51,7 @@ export const PERMIT_TYPES = {
     { name: "deadline", type: "uint256" },
   ],
 };
+
 /**
  * APIのPermitをそのまま署名する前に、固定schemaと内容を検査する。
  * JPYCのPermit対応経路に限定し、別のspender・金額・チェーンへの許可を防ぐ。
@@ -117,6 +119,7 @@ export function permitPayload(quote: Quote, config: Config) {
     deadline: m.deadline,
   };
 }
+
 /**
  * 署名はローカルのウォレットで作る。この関数自体はチェーンやAPIへ送信しない。
  * QuoteのIDは送信用、route_params.uuidはIntent署名用として、それぞれ元の値を使う。
@@ -131,7 +134,10 @@ export async function signedBody(wallet: Wallet, quote: Quote, config: Config) {
     permit_deadline: p.deadline,
   };
 }
-/** 署名を含む記録を自分だけが読み書きできる0600で新規作成し、上書きは拒否する。 */
+
+/** 
+ * 署名を含む記録を自分だけが読み書きできる0600で新規作成し、上書きは拒否する。 
+ */
 export async function savePrivate(file: string, data: unknown) {
   const handle = await open(file, "wx", 0o600);
   // POST前に書き込みを完了し、syncでファイルの内容をストレージへ反映する。
@@ -142,7 +148,10 @@ export async function savePrivate(file: string, data: unknown) {
     await handle.close();
   }
 }
-/** 完全な送信bodyを保存した後に、Swapを1回だけ送信する。 */
+
+/** 
+ * 完全な送信bodyを保存した後に、Swapを1回だけ送信する。
+ */
 export async function submitSaved(
   sera: Sera,
   body: Awaited<ReturnType<typeof signedBody>>,
@@ -167,9 +176,11 @@ export async function submitSaved(
     return { trade_id: null, status: "unknown" as const };
   }
 }
+
 export interface ReceiptReader {
   getTransactionReceipt(hash: string): Promise<{ status: number | null; hash: string } | null>;
 }
+
 /**
  * 注文APIを約2秒間隔・最大約120秒で照会する。pending/matchedは完了として扱わない。
  * controlsを差し替えると、テストでは実時間の待機なしでタイムアウトを検証できる。
@@ -240,7 +251,9 @@ export async function poll(
   return { status: "unknown", trade_id: tradeId, reason: "poll_timeout" };
 }
 
-/** CLIの実行処理。照会だけのstatusと、署名が必要なexecuteを分岐する。 */
+/** 
+ * CLIの実行処理。照会だけのstatusと、署名が必要なexecuteを分岐する。
+ */
 async function run(input: Options) {
   const owner = address(envValue(process.env, "WALLET_ADDRESS"));
   const rpcRequest = new FetchRequest(envValue(process.env, "SEPOLIA_RPC_URL"));

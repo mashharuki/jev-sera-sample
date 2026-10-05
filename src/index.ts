@@ -26,7 +26,9 @@ export interface Options {
   minOutput?: string;
   status?: string;
 }
-/** 外部APIを呼ぶ前に、必須引数・候補・金額の基本形式を検査する。 */
+/** 
+ * 外部APIを呼ぶ前に、必須引数・候補・金額の基本形式を検査する。
+ */
 export function options(args: string[], execute = false): Options {
   const { values } = parseArgs({
     args,
@@ -87,15 +89,22 @@ export function options(args: string[], execute = false): Options {
     ...(typeof minOutput === "string" ? { minOutput } : {}),
   };
 }
-/** 未設定の環境変数は名前だけを示す。値をエラーに含めない。 */
+
+/** 
+ * 未設定の環境変数は名前だけを示す。値をエラーに含めない。
+ */
 export function envValue(env: NodeJS.ProcessEnv, name: string): string {
   const v = env[name]?.trim();
   if (!v) throw new Error(`missing_${name.toLowerCase()}`);
   return v;
 }
+
 // サンプル用の固定閾値。実データで校正した正解率・約定成功率ではない。
 export const MIN_CONFIDENCE = 0.8;
-/** 見送り条件を先に確認し、不要なQuote取得や許可外の選択を防ぐ。 */
+
+/** 
+ * 見送り条件を先に確認し、不要なQuote取得や許可外の選択を防ぐ。 
+ */
 export function stopReason(decision: Decision, allow: readonly Destination[]): string | null {
   if (decision.policy === "wait") return "policy_wait";
   if (decision.confidence < MIN_CONFIDENCE) return "low_confidence";
@@ -103,6 +112,7 @@ export function stopReason(decision: Decision, allow: readonly Destination[]): s
     decision.policy === "prefer_usdc" ? "USDC" : decision.policy === "prefer_usdt" ? "USDT" : null;
   return required && !allow.includes(required) ? "destination_not_allowed" : null;
 }
+
 /**
  * Jevの方針を、検査済みの見積もりと利用者の制約に適用する。
  * 指定先が使えなくても別トークンには切り替えず、比較が不完全なら見送る。
@@ -215,7 +225,10 @@ export async function prepare(
     context: { sera, owner, budget, clock, ...registry },
   };
 }
-/** 公開用JSONには要約だけを出し、内部contextや署名用の値は含めない。 */
+
+/** 
+ * 公開用JSONには要約だけを出し、内部contextや署名用の値は含めない。
+ */
 export function report(result: Awaited<ReturnType<typeof prepare>>) {
   return {
     mode: "preview",
@@ -227,7 +240,10 @@ export function report(result: Awaited<ReturnType<typeof prepare>>) {
     timings: result.timings,
   };
 }
-/** 自由文の例外をそのまま表示せず、短いエラーコードで終了する。 */
+
+/** 
+ * 自由文の例外をそのまま表示せず、短いエラーコードで終了する。
+ */
 export function fail(error: unknown): void {
   const message =
     error instanceof Error && /^[a-z][a-z0-9_]{1,80}$/.test(error.message)
@@ -236,6 +252,7 @@ export function fail(error: unknown): void {
   console.error(JSON.stringify({ error: message }));
   process.exitCode = 1;
 }
+
 // テストやexecute.tsからimportしたときは、CLI処理を自動起動しない。
 export function isMain(url: string): boolean {
   return !!process.argv[1] && url === pathToFileURL(process.argv[1]).href;

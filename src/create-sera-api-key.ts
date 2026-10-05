@@ -3,14 +3,15 @@
  * ManageApiKeyをローカルで署名するだけなので、RPC・ガス代・テストJPYCは不要。
  * シークレットは発行時に一度しか返らないため、.env更新前に非公開の控えも保存する。
  */
+
+import { Wallet } from "ethers";
 import { randomUUID } from "node:crypto";
 import { type FileHandle, lstat, mkdir, open, readFile, rename, unlink } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { parseEnv } from "node:util";
-import { Wallet } from "ethers";
 import { savePrivate } from "./execute.js";
 import { envValue, fail, isMain } from "./index.js";
-import { address, CHAIN_ID, parseConfig, record, Sera, sameAddress } from "./sera.js";
+import { address, CHAIN_ID, parseConfig, record, sameAddress, Sera } from "./sera.js";
 
 export const MANAGE_API_KEY_TYPES = {
   ManageApiKey: [
@@ -24,7 +25,9 @@ export interface Credentials {
   api_secret: string;
 }
 
-/** 応答全体や認証情報をログへ渡さず、必要な2項目だけを検査する。 */
+/** 
+ * 応答全体や認証情報をログへ渡さず、必要な2項目だけを検査する。
+ */
 export function credentials(value: unknown): Credentials {
   const r = record(value);
   for (const name of ["api_key", "api_secret"] as const) {
@@ -35,7 +38,9 @@ export function credentials(value: unknown): Credentials {
   return { api_key: r.api_key as string, api_secret: r.api_secret as string };
 }
 
-/** 既存設定を残し、空欄のSeraキーだけを更新する。取得済みの値は上書きしない。 */
+/** 
+ * 既存設定を残し、空欄のSeraキーだけを更新する。取得済みの値は上書きしない。
+ */
 export function envContents(original: string, key: Credentials): string {
   const before = parseEnv(original);
   if (before.SERA_API_KEY || before.SERA_API_SECRET) throw new Error("sera_key_already_configured");
@@ -58,7 +63,9 @@ export function envContents(original: string, key: Credentials): string {
   return result;
 }
 
-/** .envを途中まで書き換えないよう、一時ファイルを0600で保存してから置き換える。 */
+/** 
+ * .envを途中まで書き換えないよう、一時ファイルを0600で保存してから置き換える。
+ */
 export async function replaceEnv(file: string, contents: string): Promise<void> {
   const temporary = `${file}.sera-key-${randomUUID()}.tmp`;
   const handle = await open(temporary, "wx", 0o600);
@@ -75,6 +82,14 @@ export async function replaceEnv(file: string, contents: string): Promise<void> 
   }
 }
 
+/**
+ * Sera Protocol用のAPIキーを発行するメソッド
+ * @param env 
+ * @param file 
+ * @param sera 
+ * @param persistEnv 
+ * @returns 
+ */
 export async function createSeraApiKey(
   env: NodeJS.ProcessEnv,
   file = resolve(".env"),
